@@ -1,0 +1,6 @@
+            elpd_diff se_diff
+Student-t       0.0       0.0
+Biv. Pois   -1195.8      24.1
+Double Pois -1206.5      26.9
+Neg. Bin.   -1224.6      27.1
+DIBP        -1806.6      39.1

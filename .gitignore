@@ -1,0 +1,46 @@
+# ==============================================================================
+# .gitignore — tesi-serie-a-bayes
+# ==============================================================================
+
+# R -----------------------------------------------------------------------
+.Rhistory
+.RData
+.Rproj.user/
+*.Rproj
+.Renviron
+renv/library/
+renv/staging/
+
+# File generati dagli script (rigenerabili, non vanno versionati) ---------
+output/figures/*.png
+output/figures/*.pdf
+output/tables/*.csv
+!output/figures/.gitkeep
+!output/tables/.gitkeep
+
+# Modelli MCMC pesanti ------------------------------------------------------
+# Se usi Git LFS, commenta le righe sotto e traccia *.rds con `git lfs track`
+modelli_salvati/*.rds
+
+# Dati grezzi (se non ridistribuibili) --------------------------------------
+data/raw/*
+!data/raw/.gitkeep
+
+# LaTeX ----------------------------------------------------------------------
+thesis/*.aux
+thesis/*.log
+thesis/*.toc
+thesis/*.out
+thesis/*.bbl
+thesis/*.blg
+thesis/*.synctex.gz
+thesis/*.fls
+thesis/*.fdb_latexmk
+
+# Sistema operativo -----------------------------------------------------------
+.DS_Store
+Thumbs.db
+
+# Editor -----------------------------------------------------------------------
+.vscode/
+*.Rproj.user
