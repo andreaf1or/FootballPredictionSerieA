@@ -38,20 +38,22 @@ build_datasets <- function(data) {
   )
 }
 
-#' Individua le squadre "cold-start": presenti nel test set ma assenti da
-#' ENTRAMBE le finestre di training. Utile per capire quali partite un
-#' modello MLE non può prevedere in modo affidabile.
+#' Individua le squadre "cold-start" / neopromosse.
 #'
 #' @param datasets L'output di build_datasets()
 identifica_neopromosse <- function(datasets) {
-  squadre_train <- union(
-    union(datasets$full$home_team, datasets$full$away_team),
-    union(datasets$recent$home_team, datasets$recent$away_team)
-  )
+  # Per identificare le 3 neopromosse esatte (Como, Parma, Venezia),
+  # controlliamo chi NON era presente nell'ultimissima stagione di training (2023/24).
+  ultima_stagione <- max(datasets$recent$periods)
+  
+  dati_anno_scorso <- datasets$recent %>% filter(periods == ultima_stagione)
+  squadre_anno_scorso <- union(dati_anno_scorso$home_team, dati_anno_scorso$away_team)
+  
   squadre_test <- union(datasets$test$home_team, datasets$test$away_team)
-  setdiff(squadre_test, squadre_train)
+  
+  # Trova chi c'è nel test set ma non c'era l'anno scorso
+  setdiff(squadre_test, squadre_anno_scorso)
 }
-
 #' Costruisce il test set definitivo con l'esito reale (1/X/2) già codificato,
 #' e decide ESPLICITAMENTE se includere o escludere le neopromosse.
 #'

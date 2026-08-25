@@ -9,13 +9,14 @@ library(loo)
 library(ggrepel)
 library(patchwork)
 
-source("config.R")
+source("config.R") 
 source("R/utils/prep_foot.R")
 source("R/utils/metrics.R")
 
 # --- Dati ----------------------------------------------------------------------
 data <- read_csv(file.path(PATH_DATA_PROCESSED, "serie_a_full.csv"))
 datasets <- build_datasets(data)
+n_test = 272
 
 test_set <- build_test_set(datasets, escludi_neopromosse = TRUE)
 message("Test set bayesiano (metriche quantitative): ", nrow(test_set),
@@ -25,8 +26,7 @@ test_set_esteso <- build_test_set(datasets, escludi_neopromosse = FALSE)
 message("Test set bayesiano (esempi qualitativi, §4.5.2): ", nrow(test_set_esteso),
         " partite (neopromosse incluse)")
 
-test_set_raw <- datasets$full %>%
-  slice_tail(n = n_test) %>%
+test_set_raw <- test_set %>%
   select(home_team, away_team, home_goals, away_goals, periods)
 
 
@@ -68,6 +68,7 @@ configurazioni <- list(
 message("Estrazione probabilità out-of-sample tramite foot_prob()...")
 message("Questa operazione può richiedere un paio di minuti.")
 
+
 prob_df <- map_dfr(configurazioni, function(cfg) {
   message("  \u2192 Calcolo in corso per: ", cfg$nome)
   estrai_probabilita(cfg$fit, cfg$train, test_set_raw, cfg$nome)
@@ -88,7 +89,7 @@ prob_df <- prob_df %>%
 
 # --- Metriche: accuratezza, Brier Score, RPS -----------------------------------
 # calcola_metriche() è la stessa funzione usata in R/03_frequentist.R.
-tab_completo <- calcola_metriche(prob_df, esiti)
+tab_completo <- calcola_metriche(prob_df %>% select(-any_of(c("esito_reale", "segno_prev", "corretto"))), esiti)
 metriche_df <- tab_completo  # per retrocompatibilità col resto dello script
 
 cat("\n── Tabella metriche complete ──\n")
@@ -120,20 +121,18 @@ p_brier <- tab_completo %>%
     label  = str_replace(modello, " \\(.*\\)", ""),
     label  = str_replace(label, "DIBP", "DIBP")
   ) %>%
-  ggplot(aes(x = reorder(label, -brier), y = brier, fill = gruppo)) +
-  geom_col(width = 0.65, alpha = 0.9) +
+  ggplot(aes(x = reorder(label, -brier), y = brier, color = gruppo)) +
+  geom_segment(aes(xend = label, y = 0.55, yend = brier), linewidth = 1.2) +
+  geom_point(size = 4) +
   geom_hline(yintercept = 2/3, linetype = "dashed", colour = "grey40", linewidth = 0.7) +
-  geom_text(aes(label = round(brier, 3)), hjust = -0.15, size = 3.2) +
-  coord_flip(ylim = c(0.62, 0.80)) +
-  scale_fill_manual(values = c("Storico completo" = "#E07B54", "2020-25" = "#5B8DB8")) +
-  annotate("text", x = 0.6, y = 2/3 + 0.005, label = "Baseline uniforme (2/3)",
-           size = 3, colour = "grey40", hjust = 0) +
+  geom_text(aes(label = round(brier, 3)), hjust = -0.3, size = 3.5, color = "black") +
+  coord_flip(ylim = c(0.55, 0.78)) +
+  scale_color_manual(values = c("Storico completo" = "#E07B54", "2020-25" = "#5B8DB8")) +
+  annotate("text", x = 1.2, y = 2/3 + 0.005, label = "Baseline (0.667)", size = 3.5, colour = "grey40", hjust = 0) +
   labs(title = "Brier Score per modello",
-       subtitle = "Valori pi\u00f9 bassi = migliore calibrazione probabilistica",
-       x = NULL, y = "Brier Score", fill = "Dataset training") +
+       subtitle = "Asse X troncato a 0.55",
+       x = NULL, y = "Brier Score", color = "Dataset training") +
   theme_bw(base_size = 12) + theme(legend.position = "bottom")
-
-ggsave(file.path(PATH_FIGURES, "brier_score.png"), p_brier, width = 8, height = 5, dpi = 200, bg = "white")
 
 # --- Grafici: RPS vs Accuratezza -------------------------------------------------
 p_rps <- tab_completo %>%
@@ -184,10 +183,6 @@ ggsave(file.path(PATH_FIGURES, "confusion_matrix.png"), p_cm, width = 14, height
 message("Generazione grafici abilità latenti (footBayes)...")
 p_abil <- foot_abilities(FIT_REF, TRAIN_REF)
 ggsave(file.path(PATH_FIGURES, "posterior_att_def.png"), p_abil, width = 12, height = 8, dpi = 200, bg = "white")
-
-message("Generazione classifica bayesiana (footBayes)...")
-p_rank <- foot_rank(FIT_REF, TRAIN_REF)
-ggsave(file.path(PATH_FIGURES, "classifica_bayesiana.png"), p_rank, width = 10, height = 8, dpi = 200, bg = "white")
 
 # ==============================================================================
 # Griglie probabilità punteggio esatto — partite emblematiche (§4.5.2)

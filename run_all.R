@@ -1,12 +1,6 @@
 # ==============================================================================
 # run_all.R — Esegue l'intera pipeline in ordine
 # ==============================================================================
-# Uso: Rscript run_all.R
-# oppure, in sessione interattiva: source("run_all.R")
-#
-# Nota: 04_bayesian.R può richiedere diverse ore la prima volta (stima MCMC).
-# Se modelli_salvati/*.rds sono già presenti, vengono caricati invece di
-# essere ristimati.
 
 message("== [1/5] Configurazione ==")
 source("config.R")
