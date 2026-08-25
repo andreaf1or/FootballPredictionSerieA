@@ -148,6 +148,7 @@ ggsave(file.path(PATH_FIGURES, "rocglm.png"), p_roc, width = 8, height = 7, dpi 
 message("Generazione Confusion Matrix (Frequentista)...")
 
 cm_freq_df <- prob_df %>%
+  left_join(esiti, by = c("home_team", "away_team")) %>% 
   filter(!is.na(esito_reale)) %>%
   mutate(
     segno_prev = case_when(
@@ -167,7 +168,6 @@ p_cm_freq <- ggplot(cm_freq_df, aes(x = segno_prev, y = esito_reale, fill = n)) 
   scale_y_discrete(limits = rev) +
   facet_wrap(~ modello, nrow = 1) +
   labs(title = "Matrici di confusione — Modelli Frequentisti",
-       subtitle = "Nessun modello prevede correttamente il pareggio",
        x = "Segno previsto", y = "Segno reale", fill = "N") +
   theme_bw(base_size = 11) +
   theme(legend.position = "none", strip.text = element_text(face = "bold", size = 9))
