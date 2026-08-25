@@ -61,8 +61,14 @@ install.packages(c("tidyverse", "footBayes", "rstan", "bayesplot",
 
 ## Dati
 
-I dati grezzi (`data/raw/`) provengono da [fonte dati — specificare]. I dataset
-processati e pronti all'uso sono disponibili in `data/processed/`:
+Il progetto utilizza un set di dati completo sulle partite di Serie A, costruito a partire da due fonti principali[cite: 1]:
+
+* **Dati storici (1929 - 2019):** Estratti direttamente dal pacchetto R `engsoccerdata` tramite il dataset `italy`[cite: 1].
+* **Dati recenti (2020 - 2025):** I dati grezzi, conservati in `data/raw/serie_a_clean.csv`[cite: 1], sono stati ottenuti avvalendosi del pacchetto R `worldfootballR`[cite: 1].
+
+Lo script `R/01_data_prep.R` si occupa di unire queste due fonti, armonizzare i nomi delle squadre (che variano nel tempo e tra i dataset) e filtrare solo le partite effettivamente concluse[cite: 1]. 
+
+I dataset finali, puliti e pronti per l'analisi esplorativa e la stima dei modelli (frequentisti e bayesiani), vengono salvati automaticamente nella cartella `data/processed/` (es. `serie_a_full.csv`)[cite: 1].
 
 | File | Periodo | N. partite |
 |---|---|---|
@@ -70,10 +76,6 @@ processati e pronti all'uso sono disponibili in `data/processed/`:
 | `train_2020_25.csv` | 2020/21 – 2023/24 | ~1.520 |
 | `test_2025.csv` | 2024/25 | 380 |
 
-## Versione consegnata per la discussione
-
-Il codice esatto usato per generare i risultati riportati nella tesi è taggato
-come [`v1.0-tesi`](../../tree/v1.0-tesi).
 
 ## Licenza
 
