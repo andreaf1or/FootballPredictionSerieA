@@ -32,9 +32,9 @@ if (!instantiate::stan_cmdstan_exists()) {
 data <- read_csv(file.path(PATH_DATA_PROCESSED, "serie_a_full.csv"))
 datasets <- build_datasets(data)
 # n_test allineato al Cap. 3 (vedi discussione sul test set condiviso)
-n_test <- nrow(build_test_set(datasets, escludi_neopromosse = TRUE))
-test_set_raw <- datasets$full %>%
-  slice_tail(n = n_test) %>%
+test_set <- build_test_set(datasets, escludi_neopromosse = TRUE)   # 272 partite VERE, stagione 2024/25
+n_test <- nrow(test_set)
+test_set_raw <- test_set %>%
   select(home_team, away_team, home_goals, away_goals, periods)
 
 
@@ -52,9 +52,9 @@ fit_e_salva <- function(train_data, model, nome_file, dynamic_type = NULL) {
           if (!is.null(dynamic_type)) paste0(", dynamic_type = '", dynamic_type, "'") else "",
           ") ==")
   message("Partite nel training: ", nrow(train_data), " — questo può richiedere tempo...")
-  
+  dati_per_stan <- bind_rows(train_data, test_set_raw)
   args <- list(
-    data            = train_data,
+    data            = dati_per_stan,
     model           = model,
     predict         = n_test,
     chains          = CHAINS,
@@ -105,3 +105,4 @@ st_full   <- fit_e_salva(datasets$full, "student_t",         "st_full")
 
 message("\n\u2705 Tutti i 10 modelli stimati e salvati in ", PATH_MODELS)
 message("Ora puoi lanciare R/04_bayesian.R (o run_all.R) normalmente.")
+

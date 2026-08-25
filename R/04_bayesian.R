@@ -32,9 +32,9 @@ test_set_raw <- test_set %>%
 
 # --- Caricamento modelli salvati ------------------------------------------------
 modelli_full   <- c(dp_full = "dp_full", bp_full = "bp_full", nb_full = "nb_full",
-                     dibp_full = "dibp_full", st_full = "st_full")
+                    dibp_full = "dibp_full", st_full = "st_full")
 modelli_recent <- c(dp_2025 = "dp_2024", bp_2025 = "bp_2024", nb_2025 = "nb_2024",
-                     dibp_2025 = "dibp_2024", st_2025 = "st_2024")
+                    dibp_2025 = "dibp_2024", st_2025 = "st_2024")
 # Nota: i nomi dei file .rds usano "2024" (anno di fine training), mentre le
 # variabili/etichette in questo script usano "2025" (stagione di test)
 
@@ -69,14 +69,14 @@ message("Estrazione probabilità out-of-sample tramite foot_prob()...")
 message("Questa operazione può richiedere un paio di minuti.")
 
 
-prob_df <- map_dfr(configurazioni, function(cfg) {
+prob_df_bay<- map_dfr(configurazioni, function(cfg) {
   message("  \u2192 Calcolo in corso per: ", cfg$nome)
   estrai_probabilita(cfg$fit, cfg$train, test_set_raw, cfg$nome)
 })
 
 esiti <- test_set %>% select(home_team, away_team, esito_reale)
 
-prob_df <- prob_df %>%
+prob_df_bay <- prob_df_bay %>%
   left_join(esiti, by = c("home_team", "away_team")) %>%
   mutate(
     segno_prev = case_when(
@@ -89,13 +89,13 @@ prob_df <- prob_df %>%
 
 # --- Metriche: accuratezza, Brier Score, RPS -----------------------------------
 # calcola_metriche() è la stessa funzione usata in R/03_frequentist.R.
-tab_completo <- calcola_metriche(prob_df %>% select(-any_of(c("esito_reale", "segno_prev", "corretto"))), esiti)
-metriche_df <- tab_completo  # per retrocompatibilità col resto dello script
+tab_completo_bay <- calcola_metriche(prob_df_bay %>% select(-any_of(c("esito_reale", "segno_prev", "corretto"))), esiti)
+metriche_df_bay <- tab_completo_bay  # per retrocompatibilità col resto dello script
 
 cat("\n── Tabella metriche complete ──\n")
-print(tab_completo)
+print(tab_completo_bay)
 
-write_csv(tab_completo, file.path(PATH_TABLES, "metriche_bayes.csv"))
+write_csv(tab_completo_bay, file.path(PATH_TABLES, "metriche_bayes.csv"))
 
 # --- Confronto modelli LOO-CV ---------------------------------------------------
 message("\nCalcolo LOO-CV (2020-2025)...")
@@ -115,7 +115,7 @@ capture.output(print(loo_result), file = file.path(PATH_TABLES, "loo_compare_202
 # --- Grafici: Brier Score per modello --------------------------------------------
 message("Generazione grafici di calibrazione...")
 
-p_brier <- tab_completo %>%
+p_brier <- tab_completo_bay %>%
   mutate(
     gruppo = if_else(grepl("full", modello), "Storico completo", "2020-25"),
     label  = str_replace(modello, " \\(.*\\)", ""),
@@ -130,12 +130,11 @@ p_brier <- tab_completo %>%
   scale_color_manual(values = c("Storico completo" = "#E07B54", "2020-25" = "#5B8DB8")) +
   annotate("text", x = 1.2, y = 2/3 + 0.005, label = "Baseline (0.667)", size = 3.5, colour = "grey40", hjust = 0) +
   labs(title = "Brier Score per modello",
-       subtitle = "Asse X troncato a 0.55",
        x = NULL, y = "Brier Score", color = "Dataset training") +
   theme_bw(base_size = 12) + theme(legend.position = "bottom")
 
 # --- Grafici: RPS vs Accuratezza -------------------------------------------------
-p_rps <- tab_completo %>%
+p_rps <- tab_completo_bay %>%
   mutate(
     gruppo = if_else(grepl("full", modello), "Storico completo", "2020-25"),
     label  = str_replace(modello, " \\(.*\\)", "")
@@ -154,9 +153,9 @@ ggsave(file.path(PATH_FIGURES, "rps_accuratezza.png"), p_rps, width = 8, height 
 # --- Matrice di confusione (modelli 2020-25) -------------------------------------
 message("Generazione Confusion Matrix...")
 modelli_2025_lbl <- c("Double Pois (2020-25)", "Biv. Pois (2020-25)",
-                       "Neg. Bin. (2020-25)", "DIBP (2020-25)", "Student-t (2020-25)")
+                      "Neg. Bin. (2020-25)", "DIBP (2020-25)", "Student-t (2020-25)")
 
-cm_df <- prob_df %>%
+cm_df <- prob_df_bay %>%
   filter(modello %in% modelli_2025_lbl, !is.na(esito_reale)) %>%
   mutate(
     esito_reale = factor(esito_reale, levels = c("1", "X", "2")),
@@ -216,20 +215,20 @@ caso_inc <- prob_ref %>% slice_max(entropia, n = 1, with_ties = FALSE)
 
 disegna_griglia_bellissima <- function(caso, fit_obj, data_comb) {
   plot_base <- foot_prob(fit_obj, data_comb, home_team = caso$home_team, away_team = caso$away_team)$prob_plot
-
+  
   grid <- plot_base$data %>%
     rename(home = Home, away = Away, prob = Prob) %>%
     filter(home <= 5, away <= 5)
-
+  
   idx <- which(test_set_esteso$home_team == caso$home_team & test_set_esteso$away_team == caso$away_team)[1]
   gol_reali_h <- test_set_esteso$home_goals[idx]
   gol_reali_a <- test_set_esteso$away_goals[idx]
-
+  
   sottotitolo_pulito <- paste0(
     "Esito previsto: ", caso$segno_prev, if_else(caso$corretto, " \u2713", " \u2717"),
     "  |  Esito reale: ", gol_reali_h, "-", gol_reali_a, " (", caso$esito_reale, ")"
   )
-
+  
   ggplot(grid, aes(x = factor(away), y = factor(home))) +
     geom_tile(aes(fill = prob), colour = "white") +
     geom_tile(
