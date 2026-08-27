@@ -214,8 +214,11 @@ caso_err <- prob_ref %>% filter(!corretto) %>% slice_max(p_max, n = 1, with_ties
 caso_inc <- prob_ref %>% slice_max(entropia, n = 1, with_ties = FALSE)
 
 disegna_griglia_bellissima <- function(caso, fit_obj, data_comb) {
-  plot_base <- foot_prob(fit_obj, data_comb, home_team = caso$home_team, away_team = caso$away_team)$prob_plot
-  
+    data_comb_filtrato <- data_comb %>%
+      filter(!(home_team == caso$home_team & away_team == caso$away_team & periods != 2025))
+    
+    plot_base <- foot_prob(fit_obj, data_comb_filtrato,
+                           home_team = caso$home_team, away_team = caso$away_team)$prob_plot
   grid <- plot_base$data %>%
     rename(home = Home, away = Away, prob = Prob) %>%
     filter(home <= 5, away <= 5)
